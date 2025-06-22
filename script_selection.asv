@@ -1,0 +1,63 @@
+clear all;
+close all;
+
+mut=0.03;
+E=10000;
+T=100;
+dt=1/100;
+Npop=10;
+
+% % ADAM et EVE
+% ADAM=randn(24,11);
+% EVE=randn(24,11);
+% pXN1=ADAM;
+% pXN2=EVE;
+% pYN1=ADAM;
+% pYN2=EVE;
+aggX1=rand;
+aggX2=rand;
+aggY1=rand;
+aggY2=rand;
+
+
+for N=1:80
+generation=N
+aggressivite=[aggX1 aggY1]
+[norm(pX1) norm(pY1)]
+for i=1:Npop;
+    [PX,AGGX]=crossover(pX1,pX2,aggX1,aggX2,mut);
+    [PY,AGGY]=crossover(pY1,pY2,aggY1,aggY2,mut);
+    [vainqueur,pX(:,:,i),pY(:,:,i),agX(i),agY(i),fitX(i),fitY(i),F]=match(PX,AGGX,PY,AGGY,E,T,dt);
+end;
+
+fitmax=[max(fitX) max(fitY)]
+
+% Choix des deux meilleurs dans chaque groupe
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I1=arg_max(fitX);
+if (I1>=2)&&(I1<=Npop-1)
+    I2=arg_max(fitX([1:I1-1 I1+1:end]));
+elseif I1==1
+    I2=arg_max(fitX(2:end));
+elseif I1==Npop
+    I2=arg_max(fitX(1:end-1))
+end;
+pX1=pX(:,:,I1);
+pX2=pX(:,:,I2);
+aggX1=agX(1,I1);
+aggX2=agX(1,I2);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I1=arg_max(fitY);
+if (I1>=2)&&(I1<=Npop-1)
+    I2=arg_max(fitY([1:I1-1 I1+1:end]));
+elseif I1==1
+    I2=arg_max(fitY(2:end));
+elseif I1==Npop
+    I2=arg_max(fitY(1:end-1))
+end;
+pY1=pY(:,:,I1);
+pY2=pY(:,:,I2);
+aggY1=agY(1,I1);
+aggY2=agY(1,I2);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end;

@@ -1,0 +1,134 @@
+function [vainqueur,p_X,p_Y,agg_X,agg_Y,fit_X,fit_Y,F]=match(pX,aggX,pY,aggY,E,T,dt)
+% X et Y sont des matrices colonne de taille Nb_inputs
+% X et Y se déplacent dans le carré [-1,1]^2
+% E est l'énergie de départ de chaque individu (ne dépend pas du prgm genet)
+% le but de chaque individu est de survivre à l'autre, en gérant sa
+% quantité dénergie.
+% Il y a 2 façons de perdre de l'énergie :
+%     -vieillesse
+%     -bouger
+% Si E tombe à zéro, l'individu meurt. 
+% T est la durée de l'affront
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Conditions initiales du match : 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+EX=E;
+EY=E;
+X=[rand-rand;rand-rand];
+Y=[rand-rand;rand-rand];
+vX=[0; 0];
+vY=[0; 0];
+eps=2/10; % portée des tirs
+prix_tir=100; % énergie bouffée par un tir
+prix_sortie=100;
+gagnant='pas encore';
+continuer=1;
+G=[];
+t=0;
+FITNESS_X=0;
+FITNESS_Y=0;
+while (continuer==1)%&&(t<T)
+    
+    % TIR (précision accrue quand X et Y proches)
+    if (binornd(1,5*dt*aggX)==1) % si X tire
+        if abs(norm(X-Y,inf)*randn)<eps % si tir X réussi
+            FITNESS_X=FITNESS_X+dt;
+            FITNESS_Y=max(FITNESS_Y-dt,0);
+            EX=EX-prix_tir;
+            EY=EY-3*prix_tir;
+            Y=Y+eps*randn(2,1);
+            vY=vY+vX; %Y est bousculé par X
+        else EX=EX-prix_tir; % si le tir de X est raté
+        end;
+    end;   
+    if  (binornd(1,5*dt*aggY)==1)
+        if abs(norm(Y-X,inf)*randn)<eps
+            FITNESS_Y=FITNESS_Y+dt;
+            FITNESS_X=max(FITNESS_X-dt,0);
+            EY=EY-prix_tir;
+            EX=EX-3*prix_tir;
+            X=X+eps*randn(2,1);
+            vX=vX+vY;
+        else EY=EY-prix_tir;
+        end;
+    end;
+    
+    % INPUTS de X et Y
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    iX= [EX/E; % énergie restante
+        Y(1,1)-X(1,1) ; Y(2,1)-X(2,1) ; % distance relative adv
+        X(1,1)-1 ; X(1,1)+1; X(2,1)+1; X(2,1)-1; %distance aux 4 bords
+        vY(1,1)-vX(1,1); vY(2,1)-vX(2,1) % vit. relat. adv.
+        vX(1,1) ; vX(2,1)]; % vitesse
+    iY= [EY/E;
+        X(1,1)-Y(1,1) ; X(2,1)-Y(2,1);
+        Y(1,1)-1 ; Y(1,1)+1; Y(2,1)+1; Y(2,1)-1;
+        vX(1,1)-vY(1,1); vX(2,1)-vY(2,1)
+        vY(1,1) ; vY(2,1)];
+        
+    % OUTPUTS (accélération)
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    [aX,aY]=output(pX,pY,iX,iY);
+    
+    % nouvelles valeurs
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    vX=vX+dt*aX;
+    vY=vY+dt*aY;
+    norm(vX)
+    X=X+dt*vX;
+    Y=Y+dt*vY;
+    EX=EX-dt*norm(aX);
+    EY=EY-dt*norm(aY);
+    FITNESS_X=FITNESS_X+dt*norm(vX);
+    FITNESS_Y=FITNESS_Y+dt*norm(vY);
+    % Collision au bord
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if (norm(X,inf)>=1)&&(norm(Y,inf)>=1)
+        EX=EX-prix_sortie;
+        EY=EY-prix_sortie;
+         vX= [-vX(1,1)*(abs(X(1,1))>=1)+vX(1,1)*(abs(X(1,1))<1);
+             -vX(2,1)*(abs(X(2,1))>=1)+vX(2,1)*(abs(X(2,1))<1)];
+         vY= [-vY(1,1)*(abs(Y(1,1))>=1)+vY(1,1)*(abs(Y(1,1))<1);
+             -vY(2,1)*(abs(Y(2,1))>=1)+vY(2,1)*(abs(Y(2,1))<1)];
+    elseif (norm(X,inf)>=1)&&(norm(Y,inf)<1)
+        EX=EX-prix_sortie;
+         vX= [-vX(1,1)*(abs(X(1,1))>=1)+vX(1,1)*(abs(X(1,1))<1);
+             -vX(2,1)*(abs(X(2,1))>=1)+vX(2,1)*(abs(X(2,1))<1)];
+    elseif (norm(X,inf)<1)&&(norm(Y,inf)>=1)
+         EY=EY-prix_sortie; 
+         vY= [-vY(1,1)*(abs(Y(1,1))>=1)+vY(1,1)*(abs(Y(1,1))<1);
+             -vY(2,1)*(abs(Y(2,1))>=1)+vY(2,1)*(abs(Y(2,1))<1)];
+    end;
+
+    % état de la partie (energie)
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if (EX<=0)&&(EY<=0)
+        gagnant='aucun';g=1;
+        continuer=0;
+    elseif (EX>0)&&(EY<=0)
+        gagnant='individu X';g=1;
+        continuer=0;
+    elseif (EX<=0)&&(EY>0)
+        gagnant='individu Y';g=2;
+        continuer=0;
+    end;
+    
+    plot(X(1,1),X(2,1),'ob',Y(1,1),Y(2,1),'or')
+    axis([-1.1 1.1 -1.1 1.1])
+    title(['t=' num2str(t) ', E(X)=' num2str(EX) ', E(Y)=' num2str(EY)])
+    G=[G getframe];
+    t=t+dt;
+    FITNESS_X=FITNESS_X+10*dt;
+    FITNESS_Y=FITNESS_Y+10*dt;
+end;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+vainqueur=gagnant;
+p_X=pX;
+p_Y=pY;
+agg_X=aggX;
+agg_Y=aggY;
+fit_X=FITNESS_X + 10*(g==1)*(abs(FITNESS_X-FITNESS_Y));
+fit_Y=FITNESS_Y + 10*(g==2)*(abs(FITNESS_Y-FITNESS_X));
+F= G;
