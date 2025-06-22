@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints (in case you use any)
+.ipynb_checkpoints/
+
+# VS Code settings (optional)
+.vscode/
+
+# PyTorch + training artifacts
+*.pth
+*.pt
+*.ckpt
+checkpoints/
+runs/
+logs/
+output/
+*.log
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# PyInstaller
+*.spec
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Testing / coverage
+htmlcov/
+.coverage
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Pyre / Pytype / MyPy
+.pyre/
+.pytype/
+.mypy_cache/
+
+# matplotlib cache
+.matplotlib/
+
+# Optional: user config files
+*.swp
+*~
