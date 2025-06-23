@@ -1,0 +1,6 @@
+# Dependencies
+numpy
+pytest
+matplotlib
+pillow
+torch>=2.0

@@ -1,0 +1,58 @@
+.
+├── animations
+│   └── fight.gif
+├── boxing.py
+├── current_structure.txt
+├── fights
+│   └── log.json
+├── init_boxing_structure.sh
+├── Makefile
+├── matlab
+│   ├── arg_max.m
+│   ├── crossover.asv
+│   ├── crossover.m
+│   ├── generation100.mat
+│   ├── generation150.mat
+│   ├── generation200.mat
+│   ├── generation51.mat
+│   ├── generation61.mat
+│   ├── match.asv
+│   ├── match.m
+│   ├── match_muet.m
+│   ├── output.m
+│   ├── script_selection.asv
+│   ├── script_selection.m
+│   ├── Variables
+│   │   ├── matlab_aggX1.mat
+│   │   ├── matlab_aggX2.mat
+│   │   ├── matlab_aggY1.mat
+│   │   ├── matlab_aggY2.mat
+│   │   ├── matlab_pX1.mat
+│   │   ├── matlab_pX2.mat
+│   │   ├── matlab_pY1.mat
+│   │   └── matlab_pY2.mat
+│   └── variables30.m
+├── models
+├── README.md
+├── requirements.txt
+├── setup.py
+├── src
+│   ├── agents
+│   │   ├── boxer.py
+│   │   └── factory.py
+│   ├── cli.py
+│   ├── environment
+│   │   ├── box_world.py
+│   │   └── fight.py
+│   ├── training
+│   │   └── trainer.py
+│   └── utils
+│       ├── io.py
+│       └── visuals.py
+└── tests
+    ├── test_core.py
+    ├── test_fight.py
+    ├── test_run_and_animate.py
+    └── test_train_agents.py
+
+12 directories, 44 files

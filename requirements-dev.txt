@@ -1,0 +1,16 @@
+# Core development tools
+black==24.4.2
+ruff==0.4.4
+mypy==1.10.0
+pytest==8.2.1
+coverage==7.5.3
+
+# Optional but useful for advanced debugging
+pudb==2024.1
+
+# Fire CLI for quick access to internal APIs
+fire==0.6.0
+
+# Typing stubs (optional, improves mypy)
+types-PyYAML
+types-requests
