@@ -59,3 +59,11 @@ coverage.xml
 # Optional: user config files
 *.swp
 *~
+
+# Ruff and Pytest caches
+.ruff_cache/
+.pytest_cache/
+
+# Boxing project folders
+models/
+fights/

@@ -12,15 +12,17 @@ from src.agents.boxer import Boxer
 import numpy as np
 
 
-def run_fight(boxer_a, boxer_b, T=10.0, dt=0.1, box_size=10.0, track_obs=False):
+def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False):
     world = BoxWorld(size=box_size)
     t = 0.0
     log = []
 
     while t < T and boxer_a.is_alive() and boxer_b.is_alive():
+        # relative observations for each boxer
         obs_a = get_observation(boxer_a, boxer_b, box_size)
         obs_b = get_observation(boxer_b, boxer_a, box_size)
 
+        # next action determined by own neural network and observation
         a_accel = boxer_a.decide_action(obs_a)
         b_accel = boxer_b.decide_action(obs_b)
 
@@ -61,6 +63,10 @@ def run_fight(boxer_a, boxer_b, T=10.0, dt=0.1, box_size=10.0, track_obs=False):
         winner = "A"
     elif boxer_b.is_alive() and not boxer_a.is_alive():
         winner = "B"
+
+    # debug
+    if len(log) == 0:
+        print(f"Warning: fight skipped. Conditions: T={T}, boxer_a.alive={boxer_a.is_alive()}, boxer_b.alive={boxer_b.is_alive()}")
 
     return {
         "log": log,

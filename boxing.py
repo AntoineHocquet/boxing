@@ -62,7 +62,7 @@ def main():
     # Animate
     anim_parser = subparsers.add_parser("animate", help="Animate a fight log")
     anim_parser.add_argument("--log", required=True)
-    anim_parser.add_argument("--out", default="animations/fight.gif")
+    anim_parser.add_argument("--out", default="fight.gif")
 
     args = parser.parse_args()
 
@@ -75,10 +75,10 @@ def main():
         boxer_b = Boxer("B", init_pos=[8.0, 8.0], model=model_b)
         result = run_fight(boxer_a, boxer_b, T=5.0, dt=0.1)
         save_fight_log(result, args.save_log)
-        print(f"✅ Fight complete. Log saved to {args.save_log}")
+        print(f"✅ Fight complete. Log saved to fights/log_epoch{args.save_log}.json")
 
     elif args.command == "animate":
-        animate_fight(log_path=args.log, output_path=args.out)
+        animate_fight(log_path=f"fights/log_epoch{args.log}.json", output_path=f"animations/fight_{args.out}.gif")
         print(f"🎞️ Animation saved to {args.out}")
 
 if __name__ == "__main__":

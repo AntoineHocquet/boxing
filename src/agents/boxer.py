@@ -16,21 +16,42 @@ import torch.nn as nn
 
 
 class BoxerNet(nn.Module):
-    """
-    Simple MLP taking a 4D obs (relative pos + velocity).
-    Outputs a bounded 2D acceleration via Tanh().
-    """
     def __init__(self, input_dim=4, hidden_dim=32):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, 2),  # Output: 2D acceleration
+            nn.Linear(hidden_dim, 2),  
             nn.Tanh()  # Bound acceleration between -1 and 1
         )
 
     def forward(self, obs):
         return self.model(obs)
+    
+class BoxerNet(nn.Module):
+    """
+    Simple MLP taking a 4D obs (relative pos + velocity).
+    Outputs a bounded 2D acceleration via Tanh().
+    Output Mean and Log Std Dev 
+    """
+    def __init__(self, input_dim=4, hidden_dim=32):
+        super().__init__()
+        self.backbone = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+        )
+        self.mean_head = nn.Sequential(
+            nn.Linear(hidden_dim, 2),   # Output: 2D acceleration
+            nn.Tanh()  # to keep mean in [-1, 1]
+        )
+        self.log_std = nn.Parameter(torch.zeros(2))  # learnable std (same for all inputs)
+
+    def forward(self, obs):
+        x = self.backbone(obs)
+        mean = self.mean_head(x)
+        std = torch.exp(self.log_std)
+        return mean, std
+
 
 
 class Boxer:
@@ -52,23 +73,23 @@ class Boxer:
         self.hit_cost = 5.0
         self.damage_taken = 20.0
 
-    def decide_action(self, obs, training=False):
+    def decide_action(self, obs, training=False, return_logprob=False):
         """
-        Predicts acceleration from observation.
-        If training=True, returns a tensor with gradient tracking.
+        Decide an action using the neural network.
         """
-        # if model is None, take random action
-        if self.model is None:
-            return np.random.uniform(-1.0, 1.0, 2)
-
-        # otherwise, use model
         obs_tensor = torch.tensor(obs, dtype=torch.float32)
+        mean, std = self.model(obs_tensor)
+
+        dist = torch.distributions.Normal(mean, std)
         if training:
-            accel = self.model(obs_tensor)
+            action = dist.rsample()  # enables backprop through sampling
+            if return_logprob:
+                logprob = dist.log_prob(action).sum()
+                return action, logprob
+            return action
         else:
-            with torch.no_grad():
-                accel = self.model(obs_tensor)
-        return accel.numpy() if not training else accel
+            # deterministic during inference
+            return mean.detach().numpy()
 
     def apply_acceleration(self, accel, dt):
         cost = self.accel_cost * np.linalg.norm(accel)
@@ -89,3 +110,11 @@ class Boxer:
 
     def is_alive(self):
         return self.energy > 0
+    
+    def reset(self, init_pos, init_energy=100.0):
+        """
+        Resets the dynamic state of the boxer for a new fight.
+        """
+        self.position = np.array(init_pos, dtype=np.float32)
+        self.velocity = np.zeros(2, dtype=np.float32)
+        self.energy = init_energy
