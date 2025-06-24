@@ -1,40 +1,8 @@
-# def main():
-#     parser = argparse.ArgumentParser(
-#         description="🤖 BOXING: Train and battle adversarial neural agents in a 2D ring!"
-#     )
-#     subparsers = parser.add_subparsers(dest="command", required=True)
-
-#     # Train command
-#     train_parser = subparsers.add_parser("train", help="Train two agents adversarially")
-#     train_parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs")
-#     train_parser.add_argument("--save-dir", type=str, default="models/", help="Directory to save models")
-
-#     # Fight command
-#     fight_parser = subparsers.add_parser("fight", help="Run a match between two trained agents")
-#     fight_parser.add_argument("--model-a", type=str, required=True, help="Path to model A")
-#     fight_parser.add_argument("--model-b", type=str, required=True, help="Path to model B")
-#     fight_parser.add_argument("--save-log", type=str, default="fights/fight_log.json", help="Where to save fight log")
-
-#     # Animate command
-#     anim_parser = subparsers.add_parser("animate", help="Animate a fight log")
-#     anim_parser.add_argument("--log", type=str, required=True, help="Path to saved fight log (.json)")
-#     anim_parser.add_argument("--out", type=str, default="animations/fight.gif", help="Output GIF path")
-
-#     # Parse arguments and dispatch
-#     args = parser.parse_args()
-
-#     if args.command == "train":
-#         train_agents(epochs=args.epochs, save_dir=args.save_dir)
-
-#     elif args.command == "fight":
-#         model_a, model_b = load_models(args.model_a, args.model_b)
-#         fight_log = run_fight(model_a, model_b)
-#         save_fight_log(fight_log, args.save_log)
-
-#     elif args.command == "animate":
-#         animate_fight(log_path=args.log, output_path=args.out)
-
 # boxing.py
+
+"""
+🤖 BOXING: Train and battle adversarial neural agents in a 2D ring!
+"""
 
 import argparse
 from src.training.trainer import train_agents
@@ -45,7 +13,7 @@ from src.agents.boxer import Boxer
 import os
 
 def main():
-    parser = argparse.ArgumentParser(description="🤖 BOXING CLI")
+    parser = argparse.ArgumentParser(description="🤖 BOXING: Train and battle adversarial neural agents in a 2D ring!")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Train

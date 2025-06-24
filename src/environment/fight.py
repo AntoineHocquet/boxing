@@ -12,7 +12,7 @@ from src.agents.boxer import Boxer
 import numpy as np
 
 
-def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False):
+def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False, training=False):
     world = BoxWorld(size=box_size)
     t = 0.0
     log = []
@@ -22,17 +22,21 @@ def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False):
         obs_a = get_observation(boxer_a, boxer_b, box_size)
         obs_b = get_observation(boxer_b, boxer_a, box_size)
 
-        # next action determined by own neural network and observation
-        a_accel = boxer_a.decide_action(obs_a)
-        b_accel = boxer_b.decide_action(obs_b)
+        # Determine next action by own neural network and observation
+        # a_accel: 2D acceleration
+        # a_logprob: log probability of the action (for training)
+        a_accel, a_logprob = boxer_a.decide_action(obs_a, training=training, return_logprob=True)
+        b_accel, b_logprob = boxer_b.decide_action(obs_b, training=training, return_logprob=True)
 
+        # Apply accelerations
         boxer_a.apply_acceleration(a_accel, dt)
         boxer_b.apply_acceleration(b_accel, dt)
 
-        # Update velocities with wall reflection
+        # Take into account wall reflection
         boxer_a.velocity = world.reflect_if_hit_wall(boxer_a.position, boxer_a.velocity)
         boxer_b.velocity = world.reflect_if_hit_wall(boxer_b.position, boxer_b.velocity)
 
+        # Update position
         boxer_a.position = world.update_position(boxer_a.position, boxer_a.velocity, dt)
         boxer_b.position = world.update_position(boxer_b.position, boxer_b.velocity, dt)
 
@@ -53,6 +57,10 @@ def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False):
             log_entry["b_obs"] = [float(x) for x in obs_b.tolist()]
             log_entry["a_action"] = [float(x) for x in a_accel.tolist()]
             log_entry["b_action"] = [float(x) for x in b_accel.tolist()]
+
+        if training:
+            log_entry["a_logprob"] = a_logprob  # keep as torch.Tensor
+            log_entry["b_logprob"] = b_logprob
 
         log.append(log_entry)
 

@@ -14,19 +14,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
-class BoxerNet(nn.Module):
-    def __init__(self, input_dim=4, hidden_dim=32):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 2),  
-            nn.Tanh()  # Bound acceleration between -1 and 1
-        )
-
-    def forward(self, obs):
-        return self.model(obs)
     
 class BoxerNet(nn.Module):
     """
@@ -76,6 +63,9 @@ class Boxer:
     def decide_action(self, obs, training=False, return_logprob=False):
         """
         Decide an action using the neural network.
+        Returns:
+        - action: 2D acceleration
+        - logprob (optional): log probability of the action
         """
         obs_tensor = torch.tensor(obs, dtype=torch.float32)
         mean, std = self.model(obs_tensor)
@@ -92,9 +82,18 @@ class Boxer:
             return mean.detach().numpy()
 
     def apply_acceleration(self, accel, dt):
-        cost = self.accel_cost * np.linalg.norm(accel)
+        """
+        Apply acceleration to velocity.
+        """
+        # accel is a 2D vector
+        if isinstance(accel, torch.Tensor):
+            accel_np = accel.detach().numpy()
+        else:
+            accel_np = accel
+
+        cost = self.accel_cost * np.linalg.norm(accel_np)
         self.energy -= cost
-        self.velocity += accel * dt
+        self.velocity += accel_np * dt
         speed = np.linalg.norm(self.velocity)
         if speed > self.max_speed:
             self.velocity = (self.velocity / speed) * self.max_speed
