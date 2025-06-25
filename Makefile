@@ -47,3 +47,14 @@ clean:
 	@echo "🧼 Cleaning cache..."
 	find . -type d -name '__pycache__' -exec rm -r {} +
 	rm -rf .pytest_cache .mypy_cache htmlcov
+
+
+# for training
+train:
+	$(PYTHON) boxing.py train
+
+retrain:
+	$(PYTHON) boxing.py retrain
+
+animate:
+	$(PYTHON) boxing.py animate --log 100

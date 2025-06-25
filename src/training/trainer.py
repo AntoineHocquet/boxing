@@ -17,24 +17,31 @@ from src.utils.io import save_fight_log
 import os
 
 
-def train_agents(epochs=100, T=30, save_dir="models"):
+def train_agents(epochs=100, T=30, save_dir="models", boxer_a=None, boxer_b=None):
     """
     Train two boxers adversarially using observations from fights.
     Uses a simple regression loss toward +1 if won, 0 if lost.
     """
     os.makedirs(save_dir, exist_ok=True)
 
-    # Create two agents with their own models
-    model_a = BoxerNet()
-    model_b = BoxerNet()
+    # Initialize boxers
+    if boxer_a is None:
+        model_a = BoxerNet()
+        boxer_a = Boxer("A", init_pos=[2.0, 2.0], model=model_a)
+    else:
+        model_a = boxer_a.model
 
-    boxer_a = Boxer("A", init_pos=[2.0, 2.0], model=model_a)
-    boxer_b = Boxer("B", init_pos=[8.0, 8.0], model=model_b)
+    if boxer_b is None:
+        model_b = BoxerNet()
+        boxer_b = Boxer("B", init_pos=[8.0, 8.0], model=model_b)
+    else:
+        model_b = boxer_b.model
 
+    # Initialize optimizers
     optimizer_a = optim.Adam(model_a.parameters(), lr=1e-3)
     optimizer_b = optim.Adam(model_b.parameters(), lr=1e-3)
 
-
+    # Training loop
     for epoch in range(1, epochs + 1):
         # refresh boxers for a new fight (reset energy, position & velocity)
         boxer_a.reset(init_pos=[2.0, 2.0])
@@ -45,6 +52,7 @@ def train_agents(epochs=100, T=30, save_dir="models"):
         log = result["log"]
         winner = result["winner"]
 
+        # Compute rewards
         reward_a = 1.0 if winner == "A" else 0.0
         reward_b = 1.0 if winner == "B" else 0.0
 
@@ -52,9 +60,11 @@ def train_agents(epochs=100, T=30, save_dir="models"):
         logprobs_a = [entry["a_logprob"] for entry in log]
         logprobs_b = [entry["b_logprob"] for entry in log]
 
+        # Compute loss
         loss_a = -reward_a * torch.stack(logprobs_a).sum()
         loss_b = -reward_b * torch.stack(logprobs_b).sum()
 
+        # Update models
         optimizer_a.zero_grad()
         loss_a.backward()
         optimizer_a.step()
@@ -63,6 +73,7 @@ def train_agents(epochs=100, T=30, save_dir="models"):
         loss_b.backward()
         optimizer_b.step()
 
+        # Print progress
         print(f"Epoch {epoch:03d} | Winner: {winner} | Loss A: {loss_a.item():.4f} | Loss B: {loss_b.item():.4f}")
 
         # Save models and logs every 100 epochs

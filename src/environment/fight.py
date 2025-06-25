@@ -11,7 +11,6 @@ from src.environment.box_world import BoxWorld
 from src.agents.boxer import Boxer
 import numpy as np
 
-
 def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False, training=False):
     world = BoxWorld(size=box_size)
     t = 0.0
@@ -41,15 +40,17 @@ def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False, 
         boxer_b.position = world.update_position(boxer_b.position, boxer_b.velocity, dt)
 
         # Try to hit
-        boxer_a.try_hit(boxer_b)
-        boxer_b.try_hit(boxer_a)
+        hit_by_a = boxer_a.try_hit(boxer_b)  # returns True if hit
+        hit_by_b = boxer_b.try_hit(boxer_a)  # returns True if hit
 
         log_entry = {
             "t": float(t),
             "a_pos": [float(x) for x in boxer_a.position.tolist()],
             "b_pos": [float(x) for x in boxer_b.position.tolist()],
             "a_energy": float(boxer_a.energy),
-            "b_energy": float(boxer_b.energy)
+            "b_energy": float(boxer_b.energy),
+            "a_hit": hit_by_a,
+            "b_hit": hit_by_b
         }
 
         if track_obs:
@@ -81,7 +82,6 @@ def run_fight(boxer_a, boxer_b, T=30.0, dt=0.1, box_size=10.0, track_obs=False, 
         "winner": winner,
         "final_energy": (float(boxer_a.energy), float(boxer_b.energy))
     }
-
 
 def get_observation(self_boxer, opponent_boxer, box_size):
     """

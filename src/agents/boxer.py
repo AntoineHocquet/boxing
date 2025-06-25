@@ -106,6 +106,8 @@ class Boxer:
         if dist < 1.0:
             opponent.energy -= self.damage_taken
             self.energy -= self.hit_cost
+            return True
+        return False
 
     def is_alive(self):
         return self.energy > 0

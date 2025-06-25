@@ -1,6 +1,21 @@
-# Dependencies
+# Install package in editable mode
+-e .
+
+# Runtime dependencies
 numpy
-pytest
 matplotlib
 pillow
 torch>=2.0
+
+# Development/testing tools
+pytest
+black
+ruff
+mypy
+coverage
+pudb
+fire
+
+# Typing stubs (optional, improves mypy)
+types-PyYAML
+types-requests

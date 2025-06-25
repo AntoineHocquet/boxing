@@ -1,1 +1,0 @@
-# Factory for symmetric initialization
