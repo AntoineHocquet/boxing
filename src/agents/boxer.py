@@ -13,32 +13,34 @@ It stores
 import numpy as np
 import torch
 import torch.nn as nn
-
     
 class BoxerNet(nn.Module):
     """
-    Simple MLP taking a 4D obs (relative pos + velocity).
-    Outputs a bounded 2D acceleration via Tanh().
-    Output Mean and Log Std Dev 
+    Simple MLP with shared hidden backbone.
+    Outputs:
+    - bounded 2D acceleration via Tanh
+    - discrete action toggle (0 = move, 1 = attack)
     """
     def __init__(self, input_dim=4, hidden_dim=32):
         super().__init__()
         self.backbone = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
+            nn.ReLU()
         )
         self.mean_head = nn.Sequential(
-            nn.Linear(hidden_dim, 2),   # Output: 2D acceleration
-            nn.Tanh()  # to keep mean in [-1, 1]
+            nn.Linear(hidden_dim, 2),
+            nn.Tanh()
         )
-        self.log_std = nn.Parameter(torch.zeros(2))  # learnable std (same for all inputs)
+        self.log_std = nn.Parameter(torch.zeros(2))
+
+        self.toggle_head = nn.Linear(hidden_dim, 2)  # logits for "move" and "attack"
 
     def forward(self, obs):
         x = self.backbone(obs)
         mean = self.mean_head(x)
         std = torch.exp(self.log_std)
-        return mean, std
-
+        toggle_logits = self.toggle_head(x)
+        return mean, std, toggle_logits
 
 
 class Boxer:
@@ -54,6 +56,9 @@ class Boxer:
         # Neural network controlling this agent
         self.model = model if model else BoxerNet()
 
+        # Boxer action toggle
+        self.mode = "move"  # "move" or "attack"
+
         # Parameters to tweak
         self.max_speed = 5.0
         self.accel_cost = 0.1
@@ -68,23 +73,36 @@ class Boxer:
         - logprob (optional): log probability of the action
         """
         obs_tensor = torch.tensor(obs, dtype=torch.float32)
-        mean, std = self.model(obs_tensor)
+        mean, std, toggle_logits = self.model(obs_tensor)
 
         dist = torch.distributions.Normal(mean, std)
+        toggle_dist = torch.distributions.Categorical(logits=toggle_logits)
+
         if training:
-            action = dist.rsample()  # enables backprop through sampling
+            # enables backprop through sampling
+            accel = dist.rsample()
+            toggle = toggle_dist.sample()
+
+            self.mode = "move" if toggle.item() == 0 else "attack"
+            
             if return_logprob:
-                logprob = dist.log_prob(action).sum()
-                return action, logprob
-            return action
+                logprob_accel = dist.log_prob(accel).sum()
+                logprob_toggle = toggle_dist.log_prob(toggle)
+                
+                return accel, logprob_accel + logprob_toggle
+            return accel
         else:
             # deterministic during inference
+            self.mode = "move" if toggle_logits.argmax().item() == 0 else "attack"
             return mean.detach().numpy()
 
     def apply_acceleration(self, accel, dt):
         """
         Apply acceleration to velocity.
         """
+        if self.mode != "move":
+            return  # Do nothing
+
         # accel is a 2D vector
         if isinstance(accel, torch.Tensor):
             accel_np = accel.detach().numpy()
@@ -102,6 +120,9 @@ class Boxer:
         """
         Try to hit the opponent. If close enough, causes damage.
         """
+        if self.mode != "attack":
+            return False
+
         dist = np.linalg.norm(self.position - opponent.position)
         if dist < 1.0:
             opponent.energy -= self.damage_taken
@@ -110,6 +131,9 @@ class Boxer:
         return False
 
     def is_alive(self):
+        """
+        Tells whether the boxer is KO (False) or not (True). 
+        """
         return self.energy > 0
     
     def reset(self, init_pos, init_energy=100.0):
@@ -119,3 +143,4 @@ class Boxer:
         self.position = np.array(init_pos, dtype=np.float32)
         self.velocity = np.zeros(2, dtype=np.float32)
         self.energy = init_energy
+        self.mode = "move"

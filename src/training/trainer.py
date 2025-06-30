@@ -17,7 +17,7 @@ from src.utils.io import save_fight_log
 import os
 
 
-def train_agents(epochs=100, T=30, save_dir="models", boxer_a=None, boxer_b=None):
+def train_agents(epochs=100, T=30, batch_size=1, save_dir="models", boxer_a=None, boxer_b=None):
     """
     Train two boxers adversarially using observations from fights.
     Uses a simple regression loss toward +1 if won, 0 if lost.
@@ -43,26 +43,38 @@ def train_agents(epochs=100, T=30, save_dir="models", boxer_a=None, boxer_b=None
 
     # Training loop
     for epoch in range(1, epochs + 1):
-        # refresh boxers for a new fight (reset energy, position & velocity)
-        boxer_a.reset(init_pos=[2.0, 2.0])
-        boxer_b.reset(init_pos=[8.0, 8.0])
+        total_loss_a = 0.0
+        total_loss_b = 0.0
 
-        # Run a fight with observation tracking
-        result = run_fight(boxer_a, boxer_b, T=T, dt=0.1, track_obs=True, training=True)
-        log = result["log"]
-        winner = result["winner"]
+        for _ in range(batch_size):
+            # refresh boxers for a new fight (reset energy, position & velocity)
+            boxer_a.reset(init_pos=[2.0, 2.0])
+            boxer_b.reset(init_pos=[8.0, 8.0])
 
-        # Compute rewards
-        reward_a = 1.0 if winner == "A" else 0.0
-        reward_b = 1.0 if winner == "B" else 0.0
+            # Run a fight with observation tracking
+            result = run_fight(boxer_a, boxer_b, T=T, dt=0.1, track_obs=True, training=True)
+            log = result["log"]
+            winner = result["winner"]
 
-        # Accumulate REINFORCE loss
-        logprobs_a = [entry["a_logprob"] for entry in log]
-        logprobs_b = [entry["b_logprob"] for entry in log]
+            # Compute rewards
+            reward_a = 1.0 if winner == "A" else 0.0
+            reward_b = 1.0 if winner == "B" else 0.0
 
-        # Compute loss
-        loss_a = -reward_a * torch.stack(logprobs_a).sum()
-        loss_b = -reward_b * torch.stack(logprobs_b).sum()
+            # Accumulate REINFORCE loss
+            logprobs_a = [entry["a_logprob"] for entry in log]
+            logprobs_b = [entry["b_logprob"] for entry in log]
+
+            # Compute loss
+            loss_a = -reward_a * torch.stack(logprobs_a).sum()
+            loss_b = -reward_b * torch.stack(logprobs_b).sum()
+
+            # Add contribution to total loss
+            total_loss_a += loss_a
+            total_loss_b += loss_b
+
+        # average losses over batch
+        total_loss_a /= batch_size
+        total_loss_b /= batch_size
 
         # Update models
         optimizer_a.zero_grad()
@@ -74,7 +86,7 @@ def train_agents(epochs=100, T=30, save_dir="models", boxer_a=None, boxer_b=None
         optimizer_b.step()
 
         # Print progress
-        print(f"Epoch {epoch:03d} | Winner: {winner} | Loss A: {loss_a.item():.4f} | Loss B: {loss_b.item():.4f}")
+        print(f"Epoch {epoch:03d} | Avg Loss A: {total_loss_a.item():.4f} | Avg Loss B: {total_loss_b.item():.4f}")
 
         # Save models and logs every 100 epochs
         if epoch % 100 == 0:
